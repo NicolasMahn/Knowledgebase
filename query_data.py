@@ -1,11 +1,12 @@
 import argparse
-from langchain.vectorstores.chroma import Chroma
+from langchain_community.vectorstores import Chroma
 from langchain.prompts import ChatPromptTemplate
 from langchain_community.llms.ollama import Ollama
-
 from get_embedding_function import get_embedding_function
 
-CHROMA_PATH = "chroma"
+from get_data_path import TOPIC_PATH
+
+CHROMA_PATH = f"{TOPIC_PATH}/chroma"
 
 PROMPT_TEMPLATE = """
 Answer the question based only on the following context:
@@ -46,6 +47,7 @@ def query_rag(query_text: str):
     sources = [doc.metadata.get("id", None) for doc, _score in results]
     formatted_response = f"Response: {response_text}\nSources: {sources}"
     print(formatted_response)
+
     return response_text
 
 
