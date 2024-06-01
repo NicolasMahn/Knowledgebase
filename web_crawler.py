@@ -1,3 +1,4 @@
+import argparse
 import hashlib
 import shutil
 import time
@@ -16,20 +17,61 @@ from PIL import Image
 import io
 import pandas as pd
 
-from get_data_path import TOPIC_PATH
-from populate_database import DATA_PATH
-from populate_database import URL_MAPPING_FILE
+WHITE = "\033[97m"
+PURPLE = "\033[35m"
+ORANGE = "\033[38;5;208m"
+RESET = "\033[0m"
 
-HASHED_CONTENT_FILE = f"{TOPIC_PATH}/hashed_content.txt"
-CONTEXT_FILE = f"{TOPIC_PATH}/context_data.yaml"
+
+def load_config(config_file):
+    with open(config_file, 'r') as file:
+        return yaml.safe_load(file)
+
+
+def main():
+    config = load_config("config.yml")
+    data_topics = config['data_topics']
+    default_topic = config['default_topic']
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--reset", action="store_true", help="Reset the database.")
+    parser.add_argument("--debug", action="store_true", help="Additional print statements")
+    parser.add_argument("--topic", choices=data_topics.keys(), help="Select the data topic.")
+    args = parser.parse_args()
+
+    selected_topic = args.topic if args.topic else default_topic
+    topic_config = data_topics[selected_topic]
+    topic_dir = topic_config['topic_dir']
+
+    allowed_domains = topic_config['allowed_domains']
+    start_urls = topic_config['start_urls']
+    non_content_phrases = topic_config['non_content_phrases']
+    black_listed_imgs = topic_config['black_listed_imgs']
+    crawler = WebCrawler(start_urls=start_urls, allowed_domains=allowed_domains, topic_dir=topic_dir,
+                         non_content_phrases=non_content_phrases, black_listed_imgs=black_listed_imgs,
+                         max_depth=20, max_pages=1000, reset=args.reset, debug=args.debug)
+    crawler.crawl()
 
 
 class WebCrawler:
-    def __init__(self, start_urls, allowed_domains, max_depth=2, max_pages=100, reset=False):
+    def __init__(self, start_urls: list[str], allowed_domains: list[str], topic_dir: str,
+                 non_content_phrases: list[str], black_listed_imgs: list[str],
+                 max_depth: int = 2, max_pages: int = 100, reset: bool = False, debug: bool = False):
+        self.topic_dir = topic_dir
+        self.data_dir = f"{topic_dir}/documents"
+        self.url_mapping_file = f"{topic_dir}/url_mapping.yml"
+        self.hashed_content_file = f"{topic_dir}/hashed_content.txt"
+        self.context_file = f"{topic_dir}/context_data.yaml"
+
+        self.debug = debug
+        if debug:
+            print(f"{ORANGE}⭕  DEBUG Mode Active{RESET}")
         if reset:
             self.reset()
         self.start_urls = start_urls
         self.allowed_domains = allowed_domains
+        self.non_content_phrases = non_content_phrases
+        self.black_listed_imgs = black_listed_imgs
         self.max_depth = max_depth
         self.max_pages = max_pages
         self.visited_urls = set()
@@ -39,27 +81,22 @@ class WebCrawler:
         self.retry_delay = 60
         self.content_hashes = self.load_hashes()
 
-    @staticmethod
-    def load_hashes():
-        if os.path.exists(HASHED_CONTENT_FILE):
-            with open(HASHED_CONTENT_FILE, 'r') as file:
+    def load_hashes(self):
+        if os.path.exists(self.hashed_content_file):
+            with open(self.hashed_content_file, 'r') as file:
                 return set(line.strip() for line in file)
         return set()
 
     def save_hashes(self):
-        with open(HASHED_CONTENT_FILE, 'w') as file:
+        with open(self.hashed_content_file, 'w') as file:
             for content_hash in self.content_hashes:
                 file.write(content_hash + '\n')
 
     def crawl(self):
-        print(f"🕷️  Crawling has started")
-        white_text = "\033[37m"
-        green_bar = "\033[32m"
-        reset_color = "\033[0m"
-
         # Custom bar format with color codes
-        bar_format = f"{white_text}{{l_bar}}{green_bar}{{bar}}{white_text}{{r_bar}}{reset_color}"
-        with tqdm(total=self.max_pages, bar_format=bar_format, unit="page", dynamic_ncols=True) as pbar:
+        bar_format = f"{WHITE}🕷️ Crawling  {{l_bar}}{PURPLE}{{bar}}{WHITE}{{r_bar}}{RESET}"
+        with tqdm(total=self.max_pages, bar_format=bar_format, ncols=shutil.get_terminal_size((80, 20)).columns - 10,
+                  unit="page") as pbar:
             while self.urls_to_visit and self.pages_crawled < self.max_pages:
                 url, depth = self.urls_to_visit.pop(0)
                 if url in self.visited_urls or depth > self.max_depth:
@@ -76,12 +113,13 @@ class WebCrawler:
                     time.sleep(self.delay)  # Delay between requests
                     self.save_hashes()
                 except requests.RequestException as e:
-                    warnings.warn(f"Failed to retrieve {url}: {e}", UserWarning)
+                    if self.debug:
+                        warnings.warn(f"Failed to retrieve {url}: {e}", UserWarning)
             self.save_hashes()
 
     def process_response(self, response, url, depth):
         if "surge protection" in response.text.lower():
-            print(f"Surge protection triggered. Waiting for {self.retry_delay} seconds.")
+            print(f"{WHITE}❗ Surge protection triggered. Waiting for {self.retry_delay} seconds.{RESET}")
             time.sleep(self.retry_delay)
             self.urls_to_visit.append((url, depth))  # Re-add URL to retry later
             return False
@@ -99,14 +137,15 @@ class WebCrawler:
         self.scrape_tables_from_pdf(url, content)
 
     def scrape_text_from_pdf(self, url, pdf_content):
-        filename = self.url_to_filename(url, no_type=True)
+        filename = self.url_to_filename(url, "txt")
         with pdfplumber.open(io.BytesIO(pdf_content)) as pdf:
+            text = str()
             for i, page in enumerate(pdf.pages):
                 page_text = page.extract_text() + "\n"
-                page_filename = f"{filename}_page_{i+1}.txt"
-                with open(f"{DATA_PATH}/{page_filename}", 'w', encoding='utf-8') as file:
-                    file.write(page_text)
-                self.update_url_mapping(page_filename, url)
+                text = f"{text}\n{page_text}"
+            with open(f"{self.data_dir}/{filename}", 'w', encoding='utf-8') as file:
+                file.write(page_text)
+            self.update_url_mapping(filename, url)
 
     def scrape_images_from_pdf(self, url, pdf_content):
         pdf_document = fitz.open(stream=pdf_content, filetype="pdf")
@@ -117,10 +156,10 @@ class WebCrawler:
                 xref = img[0]
                 base_image = pdf_document.extract_image(xref)
                 img_bytes = base_image["image"]
-                img_format = self.get_image_format(img_bytes)
-                if img_format:
+                if len(img_bytes) > 20480:
+                    img_format = self.get_image_format(img_bytes)
                     img_filename = self.url_to_filename(url, file_format=f"{img_format.lower()}",
-                                                        name_extension=f"_page_{i+1}_image_{j+1}")
+                                                        name_extension=f"_page_{i + 1}_image_{j + 1}")
                     self.process_images(img_bytes, url, img_filename, context=page_text)
 
     def scrape_tables_from_pdf(self, url, pdf_content):
@@ -133,7 +172,7 @@ class WebCrawler:
                         df = pd.DataFrame(table[1:], columns=table[0])
                         table_filename = self.url_to_filename(url, no_type=True,
                                                               name_extension=f"_page_{i + 1}_table_{j + 1}.csv")
-                        table_path = f"{DATA_PATH}/{table_filename}"
+                        table_path = f"{self.data_dir}/{table_filename}"
                         df.to_csv(table_path, index=False)
                         self.update_url_mapping(table_filename, url)
                         self.update_context_data(table_filename, url, page_text)
@@ -146,48 +185,117 @@ class WebCrawler:
 
     def scrape_text_from_html(self, url, soup):
 
-        for table in soup.find_all('table'):
-            table.decompose()
-        text = soup.get_text(separator='\n')
+        code = soup.find('textarea', id="read-only-cursor-text-area", attrs={
+            'data-testid': "read-only-cursor-text-area",
+            'aria-label': "file content",
+            'aria-readonly': "true",
+            'inputmode': "none",
+            'tabindex': "0",
+            'aria-multiline': "true",
+            'aria-haspopup': "false",
+            'data-gramm': "false",
+            'data-gramm_editor': "false",
+            'data-enable-grammarly': "false",
+            'spellcheck': "false",
+            'autocorrect': "off",
+            'autocapitalize': "off",
+            'autocomplete': "off",
+            'data-ms-editor': "false",
+            'class': "react-blob-textarea react-blob-print-hide"
+        })
 
-        filename = self.url_to_filename(url, "txt")
-        self.update_url_mapping(filename, url)
-        html_file_path = f"{DATA_PATH}/{filename}"
+        if code:
+            filename_tag = soup.find('div', {'data-testid': 'breadcrumbs-filename'})
+            filename = filename_tag.find('h1').get_text() if filename_tag else 'unknown_filename'
 
-        os.makedirs(DATA_PATH, exist_ok=True)
-        with open(html_file_path, 'w', encoding='utf-8') as file:
-            file.write(str(text))
+            # Extract branch
+            branch_tag = soup.find('svg', {'class': 'octicon-git-branch'})
+            branch = branch_tag.find_next_sibling('span').get_text() if branch_tag else 'unknown_branch'
+
+            filtered_text = f"Filename: {filename}\nBranch: {branch}\n\n```\n{code.get_text(separator=' ')}\n```\n"
+
+        else:
+            # Extract the article body content
+            main_content = soup.find('div', itemprop='articleBody')
+
+            # Check if the article body exists
+            if not main_content:
+                # Remove menus and other non-content elements
+                for element in soup(['footer', 'nav', 'aside', 'form', 'noscript', 'table']):
+                    element.decompose()
+
+                # Extract the main content (attempt to filter out non-content sections)
+                main_content = soup.find_all(['article', 'main', 'section']) or soup
+
+            # Get text from the main content
+            text = " ".join([content.get_text(separator=' ') for content in main_content])
+
+            # Filter out lines that do not contain actual content and non-content phrases
+            content_lines = [line for line in text.splitlines()
+                             if len(line.split()) > 2 and
+                             not any(phrase in line for phrase in self.non_content_phrases)]
+
+            # Join the filtered lines
+            filtered_text = '\n'.join(content_lines)
+
+        # Check if the filtered text is empty
+        if filtered_text.strip():
+            filename = self.url_to_filename(url, "txt")
+            self.update_url_mapping(filename, url)
+            html_file_path = f"{self.data_dir}/{filename}"
+
+            os.makedirs(self.data_dir, exist_ok=True)
+            with open(html_file_path, 'w', encoding='utf-8') as file:
+                file.write(filtered_text)
 
     def scrape_tables_from_html(self, url, soup):
-        os.makedirs(DATA_PATH, exist_ok=True)
+        os.makedirs(self.data_dir, exist_ok=True)
         tables = soup.find_all('table')
         for i, table in enumerate(tables):
             try:
-                df = pd.read_html(io.StringIO(str(table)))[0]
-                table_filename = self.url_to_filename(url, file_format="csv")
-                table_path = f"{DATA_PATH}/{table_filename}"
-                df.to_csv(table_path, index=False)
-                surrounding_text = ' '.join(table.find_parent().stripped_strings)
-                self.update_url_mapping(table_filename, url)
-                self.update_context_data(table_filename, url, surrounding_text)
+                tables_list = pd.read_html(io.StringIO(str(table)))
+                if tables_list:
+                    df = tables_list[0]
+                    table_filename = self.url_to_filename(url, file_format="csv")
+                    table_path = f"{self.data_dir}/{table_filename}"
+                    df.to_csv(table_path, index=False)
+                    surrounding_text = ' '.join(table.find_parent().stripped_strings)
+                    self.update_url_mapping(table_filename, url)
+                    self.update_context_data(table_filename, url, surrounding_text)
+                else:
+                    raise ValueError("No tables found")
             except ValueError as e:
-                warnings.warn(f"Failed to parse table at {url}: {e}", UserWarning)
+                if self.debug:
+                    warnings.warn(f"Failed to parse table at {url}: {e}", UserWarning)
 
     def scrape_images_from_html(self, base_url, soup):
         for img in soup.find_all('img'):
             context = f"alt: {img.get('alt', '')}, " \
                       f"caption: {img.find_next('figcaption').text if img.find_next('figcaption') else ''}, " \
-                      f"surrounding_text: {' '.join(img.find_parent().stripped_strings)}"
+                      f"surrounding_text: {' '.join(img.find_parent().stripped_strings)}, " \
+                      f"base_url: {base_url}"
             img_url = img.get('src')
             if not img_url:
                 continue
             img_url = urljoin(base_url, img_url)
             try:
                 img_response = requests.get(img_url)
-                if img_response.status_code == 200:
-                    self.process_images(img_response.content, img_url, context=context)
+                if img_response.status_code == 200 and len(img_response.content) > 20480:
+                    if self.is_descriptive_image(img_url, context):
+                        self.process_images(img_response.content, img_url, context=context)
             except requests.RequestException as e:
-                warnings.warn(f"Failed to retrieve image {img_url}: {e}", UserWarning)
+                if self.debug:
+                    warnings.warn(f"Failed to retrieve image {img_url}: {e}", UserWarning)
+
+    def is_descriptive_image(self, img_url, context):
+        lower_url = img_url.lower()
+        if any(keyword in lower_url for keyword in ['logo', 'icon', 'favicon', 'sprite', 'banner', 'button']):
+            return False
+        if 'logo' in context.lower() or 'icon' in context.lower() or 'button' in context.lower():
+            return False
+        if img_url in self.black_listed_imgs:
+            return False
+        return True
 
     def process_images(self, img_data, img_url, img_filename=None, context=""):
         if "logo" not in img_url.lower() and "icon" not in img_url.lower():
@@ -196,11 +304,9 @@ class WebCrawler:
                 self.content_hashes.add(img_hash)
                 if img_filename is None:
                     img_format = self.get_image_format(img_data)
-                    if not img_format:
-                        img_format = "svg"
                     img_filename = self.url_to_filename(img_url, img_format.lower())
 
-                with open(f"{DATA_PATH}/{img_filename}", 'wb') as img_file:
+                with open(f"{self.data_dir}/{img_filename}", 'wb') as img_file:
                     img_file.write(img_data)
                     self.update_url_mapping(img_filename, img_url)
                     self.update_context_data(img_filename, img_url, context)
@@ -211,27 +317,26 @@ class WebCrawler:
             img = Image.open(io.BytesIO(image_bytes))
             return img.format
         except IOError:
-            return None
+            return "svg"
 
     @staticmethod
-    def url_to_filename(url: str, file_format="html", no_type=False, name_extension=""):
+    def url_to_filename(url: str, file_format="", no_type=False, name_extension=""):
         # Replace illegal characters with underscores
         filename = re.sub(r'[<>:"./\\|?*]', '_', url[8:])
         if no_type:
             return f"{filename}{name_extension}"
         return f"{filename}{name_extension}.{file_format}"
 
-    @staticmethod
-    def update_url_mapping(filename: str, url: str):
-        if not os.path.exists(URL_MAPPING_FILE):
+    def update_url_mapping(self, filename: str, url: str):
+        if not os.path.exists(self.url_mapping_file):
             url_mapping = {'documents': {}}
         else:
-            with open(URL_MAPPING_FILE, 'r') as file:
+            with open(self.url_mapping_file, 'r') as file:
                 url_mapping = yaml.safe_load(file) or {'documents': {}}
 
         url_mapping['documents'][filename] = url
 
-        with open(URL_MAPPING_FILE, 'w') as file:
+        with open(self.url_mapping_file, 'w') as file:
             yaml.safe_dump(url_mapping, file)
 
     def parse_links(self, soup, base_url, depth):
@@ -247,52 +352,29 @@ class WebCrawler:
                 self.urls_to_visit.append((href, depth + 1))
         return links
 
-    @staticmethod
-    def update_context_data(filename, url, context):
-        if not os.path.exists(CONTEXT_FILE):
+    def update_context_data(self, filename, url, context):
+        if not os.path.exists(self.context_file):
             context_data = {'files': {}}
         else:
-            with open(CONTEXT_FILE, 'r') as file:
+            with open(self.context_file, 'r') as file:
                 context_data = yaml.safe_load(file) or {'files': {}}
 
         context_data['files'][filename] = {'url': url, 'context': context}
 
-        with open(CONTEXT_FILE, 'w') as file:
+        with open(self.context_file, 'w') as file:
             yaml.safe_dump(context_data, file)
 
-    @staticmethod
-    def reset():
-        print("✨  Clearing Datastorage")
-        if os.path.isfile(URL_MAPPING_FILE):
-            os.remove(URL_MAPPING_FILE)
+    def reset(self):
+        print(f"{WHITE}✨  Clearing Datastorage{RESET}")
+        if os.path.isfile(self.url_mapping_file):
+            os.remove(self.url_mapping_file)
 
-        if os.path.isfile(HASHED_CONTENT_FILE):
-            os.remove(HASHED_CONTENT_FILE)
+        if os.path.isfile(self.hashed_content_file):
+            os.remove(self.hashed_content_file)
 
-        if os.path.isdir(DATA_PATH):
-            shutil.rmtree(DATA_PATH)
-        os.makedirs(DATA_PATH)
-
-def main():
-    allowed_domains = [
-        "frankaemika.github.io",
-        "github.com/frankaemika",
-        "franka.de",
-        "wiki.ros.org",
-        "gazebosim.org",
-        "devquantec.de/wp-content/uploads/2020/06/Datenblatt_Franka%20Emika%20Panda.pdf"]
-    start_urls = [
-        "https://devquantec.de/wp-content/uploads/2020/06/Datenblatt_Franka%20Emika%20Panda.pdf"
-        "https://frankaemika.github.io/docs/",
-        "https://github.com/frankaemika/",
-        "https://www.franka.de/",
-        "https://wiki.ros.org/",
-        "https://gazebosim.org/docs"
-    ]
-    reset = True
-    crawler = WebCrawler(start_urls=start_urls, allowed_domains=allowed_domains,
-                         max_depth=2, max_pages=10, reset=reset)
-    crawler.crawl()
+        if os.path.isdir(self.data_dir):
+            shutil.rmtree(self.data_dir)
+        os.makedirs(self.data_dir)
 
 
 if __name__ == "__main__":

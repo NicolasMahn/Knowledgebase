@@ -1,0 +1,40 @@
+data_topics:
+  ex:
+    topic_dir: "data/example_data"
+    allowed_domains: []
+    start_urls: []
+    non_content_phrases: []
+    black_listed_imgs: []
+  panda:
+    topic_dir: "data/franka_emika_panda"
+    allowed_domains:
+      - "frankaemika.github.io"
+      - "github.com/frankaemika"
+      - "franka.de"
+      - "wiki.ros.org"
+      - "gazebosim.org"
+      - "devquantec.de/wp-content/uploads/2020/06/Datenblatt_Franka%20Emika%20Panda.pdf"
+    start_urls:
+      - "https://devquantec.de/wp-content/uploads/2020/06/Datenblatt_Franka%20Emika%20Panda.pdf"
+      - "https://frankaemika.github.io/docs/"
+      - "https://github.com/frankaemika/franka_ros"
+      - "https://www.franka.de/"
+      - "https://wiki.ros.org/"
+      - "https://gazebosim.org/docs"
+      - "https://franka.de/documents"
+    non_content_phrases:
+      - 'Get in touch!'
+      - 'Kontaktieren Sie uns'
+      - 'Follow us on Facebook'
+      - 'Follow us on LinkedIn'
+      - 'Follow us on Twitter'
+      - 'Follow us on Instagram'
+      - 'You must be signed in to change notification settings'
+    black_listed_imgs:
+      - "https://franka.de/hs-fs/hubfs/iit.5a95f42.png?width=1000&height=361&name=iit.5a95f42.png"
+      - "https://franka.de/hs-fs/hubfs/nvidia-2.png?width=604&height=449&name=nvidia-2.png"
+      - "https://franka.de/hs-fs/hubfs/supsi.ba900b5.jpg?width=800&height=347&name=supsi.ba900b5.jpg"
+      - "https://franka.de/hs-fs/hubfs/tsinghua1.d6c8814.png?width=881&height=329&name=tsinghua1.d6c8814.png"
+      - "https://franka.de/hs-fs/hubfs/waterloo.4f899ab.png?width=1200&height=1200&name=waterloo.4f899ab.png"
+
+default_topic: "panda"
