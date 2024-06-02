@@ -3,6 +3,7 @@
 ## Requirements
 
 Desktopentwicklung mit C++
+https://visualstudio.microsoft.com/de/visual-cpp-build-tools/
 
 Install Ollama
 
