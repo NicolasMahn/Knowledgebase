@@ -21,12 +21,12 @@ RESET = "\033[0m"
 
 
 def load_config(config_file):
-    with open(config_file, 'r') as file:
+    with open(config_file, 'r', encoding='utf-8') as file:
         return yaml.safe_load(file)
 
 
 def main():
-    config = load_config("config.yml")
+    config = load_config("config.yaml")
     data_topics = config['data_topics']
     default_topic = config['default_topic']
 
@@ -235,13 +235,17 @@ class DatabaseManager:
     def load_img_metadata(self, file_path):
         doc_name = os.path.basename(file_path)
         url = self.url_mapping.get(doc_name, None)
+        metadata = {"url": url, "doc_name": doc_name,  "type": "image"}
         base_url = self.get_base_url_from_filename(doc_name)
-        return {"url": url, "doc_name": doc_name, "base_url": base_url, "type": "image"}
+        if base_url:
+            metadata["base_url"] = base_url
+        return metadata
 
     def generate_img_summary(self, file_path: str, metadata: dict):
-        with open(file_path, 'r', encoding='utf-8') as file:
-            content = file.read()
-        context = self.gather_context(file_path, metadata["base_url"])
+        if "base_url" in metadata.keys():
+            context = self.gather_context(file_path, metadata["base_url"])
+        else:
+            context = self.gather_context(file_path)
 
         res = ollama.chat(
             model="llava",
@@ -258,7 +262,6 @@ class DatabaseManager:
         if self.debug:
             print()
             print("Metadata:\n", metadata)
-            print("Content:\n", content)
             print("Context:\n", context)
             print("Summary:\n", summary)
         return Document(page_content=summary, metadata=metadata)

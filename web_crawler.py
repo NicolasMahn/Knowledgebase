@@ -37,6 +37,8 @@ def main():
     parser.add_argument("--reset", action="store_true", help="Reset the database.")
     parser.add_argument("--debug", action="store_true", help="Additional print statements")
     parser.add_argument("--topic", choices=data_topics.keys(), help="Select the data topic.")
+    parser.add_argument("--max_depth", type=int, default=2, help="Maximum depth for the web crawler.")
+    parser.add_argument("--max_pages", type=int, default=10, help="Maximum number of pages to crawl.")
     args = parser.parse_args()
 
     selected_topic = args.topic if args.topic else default_topic
@@ -49,7 +51,7 @@ def main():
     black_listed_imgs = topic_config['black_listed_imgs']
     crawler = WebCrawler(start_urls=start_urls, allowed_domains=allowed_domains, topic_dir=topic_dir,
                          non_content_phrases=non_content_phrases, black_listed_imgs=black_listed_imgs,
-                         max_depth=20, max_pages=1000, reset=args.reset, debug=args.debug)
+                         max_depth=args.max_depth, max_pages=args.max_pages, reset=args.reset, debug=args.debug)
     crawler.crawl()
 
 

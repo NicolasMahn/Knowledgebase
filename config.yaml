@@ -36,5 +36,33 @@ data_topics:
       - "https://franka.de/hs-fs/hubfs/supsi.ba900b5.jpg?width=800&height=347&name=supsi.ba900b5.jpg"
       - "https://franka.de/hs-fs/hubfs/tsinghua1.d6c8814.png?width=881&height=329&name=tsinghua1.d6c8814.png"
       - "https://franka.de/hs-fs/hubfs/waterloo.4f899ab.png?width=1200&height=1200&name=waterloo.4f899ab.png"
+  hfu:
+    topic_dir: "data/hfu"
+    allowed_domains:
+      - "https://www.hs-furtwangen.de/"
+      #- "https://felix.hs-furtwangen.de/dmz/" # TODO: LogIn required
+      - "https://hsfu.boss.bsz-bw.de/EDS/Home?limit=20&view=&type=AllFields"
+      - "https://splan.hs-furtwangen.de/"
+      - "https://opus.hs-furtwangen.de/home"
+      - "https://de.wikipedia.org/wiki/Hochschule_Furtwangen"
+      - "https://en.wikipedia.org/wiki/Hochschule_Furtwangen_University"
+      - "https://howto.hs-furtwangen.de/"
+      - "https://www.studycheck.de/hochschulen/hs-furtwangen"
+      - "https://rooms.hs-furtwangen.de/"
+      #- "https://intra.hs-furtwangen.de/shib/" # TODO: LogIn required
+    start_urls:
+      - "https://www.hs-furtwangen.de/"
+      #- "https://felix.hs-furtwangen.de/dmz/" # TODO: LogIn required
+      - "https://hsfu.boss.bsz-bw.de/EDS/Home?limit=20&view=&type=AllFields"
+      - "https://splan.hs-furtwangen.de/"
+      - "https://opus.hs-furtwangen.de/home"
+      - "https://de.wikipedia.org/wiki/Hochschule_Furtwangen"
+      - "https://en.wikipedia.org/wiki/Hochschule_Furtwangen_University"
+      - "https://howto.hs-furtwangen.de/"
+      - "https://www.studycheck.de/hochschulen/hs-furtwangen"
+      - "https://rooms.hs-furtwangen.de/"
+      #- "https://intra.hs-furtwangen.de/shib/" # TODO: LogIn required
+    non_content_phrases: [ ]
+    black_listed_imgs: [ ]
 
 default_topic: "panda"
