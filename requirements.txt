@@ -1,7 +1,8 @@
 pypdf
 langchain~=0.2.0
 langchain_community
-chromadb # Vector storage
+chromadb
+chroma-hnswlib==0.7.3
 pytest
 boto3
 bs4~=0.0.2
@@ -14,3 +15,4 @@ tqdm
 pillow
 pandas
 PyMuPDF
+gradio==4.32.2
