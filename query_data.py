@@ -8,9 +8,7 @@ from langchain_community.llms.ollama import Ollama
 from get_embedding_function import get_embedding_function
 
 PROMPT_TEMPLATE = """
-Answer the question based only on the following context. 
-Indicate the source of each part of your answer in the format [source: source_id]:
-
+Answer the question based only on the following context:
 {context}
 
 ---
@@ -20,6 +18,7 @@ Answer the question based on the above context: {question}
 
 WHITE = "\033[97m"
 ORANGE = "\033[38;5;208m"
+GREEN = "\033[32m"
 RESET = "\033[0m"
 
 
@@ -65,10 +64,13 @@ def query_rag(query_text: str, chroma_dir: str, data_dir: str, debug: bool = Fal
         metadata_list.append(doc.metadata)
         type = doc.metadata.get("type", None)
         url = doc.metadata.get("url", None)
+        base_url = doc.metadata.get("base_url", None)
+        if base_url is None:
+            base_url = url
         # doc_name = doc.metadata.get("doc_name", None)
         page_content = doc.page_content
         # if type == "image":
-        context_texts.append(f"[source: {type}, {url}]\n{page_content}")
+        context_texts.append(f"[source: {type}, {base_url}]\n{page_content}")
         """
         else:
             try:
@@ -94,11 +96,11 @@ def query_rag(query_text: str, chroma_dir: str, data_dir: str, debug: bool = Fal
 
     print(f"{WHITE}{response_text}{RESET}")
     print()
-    print("Scources: ")
-    for metadata in enumerate(metadata_list):
-        print(f"    [{metadata['type']}| URL: {metadata['url']}| local filename: {metadata['doc_name']}]{RESET}")
-
-    return response_text
+    print(f"{GREEN}Scources: ")
+    for i, metadata in enumerate(metadata_list):
+        print(f"   {i}. [{metadata['type']} | URL: {metadata['url']} | local filename: {metadata['doc_name']}]")
+    print(RESET)
+    return response_text, metadata_list
 
 
 def load_raw_document_content(doc_name: str, data_dir: str):

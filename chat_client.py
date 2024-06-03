@@ -34,18 +34,23 @@ class Chat_client:
         self.data_dir = f"{self.topic_dir}/documents"
 
     def chat_function(self, message: str, history: list):
-        response = query_data.query_rag(message, self.data_dir, self.chroma_dir)
+        response, metadata_list = query_data.query_rag(message, self.data_dir, self.chroma_dir, debug=True)
 
-        return response
+        answer = f"Rsponse:\n{response}\n\n"
+        answer += f"Scources: "
+        for i, metadata in enumerate(metadata_list):
+            answer += f"   {i}. [{metadata['type']} | URL: {metadata['url']}]"
+
+        return answer
 
     def launch_chat_client(self):
         gr.ChatInterface(
             fn=self.chat_function,
             chatbot=gr.Chatbot(height=900, placeholder="Ask me any question about the Panda robot!"),
-            title="Production knowledgebase",
+            title="Production Knowledgebase",
             description="Ask me any question about the Panda robot!",
             theme="soft",
-            examples=["Test1", "Test2", "Test3"],
+            examples=["What is the Load Capacity of the Panda Robot?"],
             cache_examples=True,
             retry_btn=None,
             undo_btn="Delete Previous",
