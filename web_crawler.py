@@ -29,7 +29,7 @@ def load_config(config_file):
 
 
 def main():
-    config = load_config("config.yml")
+    config = load_config("config.yaml")
     data_topics = config['data_topics']
     default_topic = config['default_topic']
 

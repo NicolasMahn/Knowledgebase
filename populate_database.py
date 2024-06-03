@@ -53,7 +53,7 @@ class DatabaseManager:
         self.context_file = f"{topic_dir}/context_data.yaml"
 
         self.context_data = self.open_context_data()
-        
+
         self.debug = debug
         if debug:
             print(f"{ORANGE}⭕  DEBUG Mode Active{RESET}")
@@ -222,7 +222,7 @@ class DatabaseManager:
                 }
             ]
         )
-        summary =  res["message"]["content"]
+        summary = res["message"]["content"]
 
         if self.debug:
             print()
@@ -235,7 +235,7 @@ class DatabaseManager:
     def load_img_metadata(self, file_path):
         doc_name = os.path.basename(file_path)
         url = self.url_mapping.get(doc_name, None)
-        metadata = {"url": url, "doc_name": doc_name,  "type": "image"}
+        metadata = {"url": url, "doc_name": doc_name, "type": "image"}
         base_url = self.get_base_url_from_filename(doc_name)
         if base_url:
             metadata["base_url"] = base_url

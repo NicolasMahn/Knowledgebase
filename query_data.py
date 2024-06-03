@@ -85,7 +85,6 @@ def query_rag(query_text: str, chroma_dir: str, data_dir: str, debug: bool = Fal
     model = Ollama(model="mistral")
     response_text = model.invoke(prompt)
 
-
     print(f"{WHITE}{response_text}{RESET}")
 
     return response_text
