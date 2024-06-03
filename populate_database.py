@@ -51,6 +51,8 @@ class DatabaseManager:
         self.data_dir = f"{topic_dir}/documents"
         self.url_mapping_file = f"{topic_dir}/url_mapping.yml"
         self.context_file = f"{topic_dir}/context_data.yaml"
+
+        self.context_data = self.open_context_data()
         
         self.debug = debug
         if debug:
@@ -87,7 +89,7 @@ class DatabaseManager:
                     doc = self.generate_txt_summary(txt_file, meta_data)
                     self.add_to_chroma(doc)
                 pbar.update(1)
-
+        '''
         with tqdm(total=len(csv_files), bar_format=bar_format_csv, unit="document", ncols=ncols) as pbar:
             for csv_file in csv_files:
                 meta_data = self.load_csv_metadata(csv_file)
@@ -95,6 +97,7 @@ class DatabaseManager:
                     doc = self.generate_csv_summary(csv_file, meta_data)
                     self.add_to_chroma(doc)
                 pbar.update(1)
+        '''
 
         with tqdm(total=len(img_files), bar_format=bar_format_img, unit="document", ncols=ncols) as pbar:
             for img_file in img_files:
@@ -147,11 +150,8 @@ class DatabaseManager:
     def get_context_from_filename(self, filename):
         basename = os.path.basename(filename)
 
-        with open(self.context_file, 'r') as file:
-            context_data = yaml.safe_load(file) or {'files': {}}
-
-        if basename in context_data['files']:
-            return context_data['files'][basename].get('context', None)
+        if basename in self.context_data['files']:
+            return self.context_data['files'][basename].get('context', None)
         return None
 
     def filter_non_image_documents_for_url(self, specific_url):
@@ -269,12 +269,14 @@ class DatabaseManager:
     def get_base_url_from_filename(self, filename):
         basename = os.path.basename(filename)
 
+        if basename in self.context_data['files']:
+            return self.context_data['files'][basename].get('base_url', None)
+        return None
+
+    def open_context_data(self):
         with open(self.context_file, 'r') as file:
             context_data = yaml.safe_load(file) or {'files': {}}
-
-        if basename in context_data['files']:
-            return context_data['files'][basename].get('base_url', None)
-        return None
+        return context_data
 
 
 if __name__ == "__main__":

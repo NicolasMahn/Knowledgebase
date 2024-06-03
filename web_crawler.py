@@ -61,6 +61,8 @@ class WebCrawler:
                  max_depth: int = 2, max_pages: int = 100, reset: bool = False, debug: bool = False):
         self.topic_dir = topic_dir
         self.data_dir = f"{topic_dir}/documents"
+        if not os.path.exists(self.data_dir):
+            os.makedirs(self.data_dir)
         self.url_mapping_file = f"{topic_dir}/url_mapping.yml"
         self.hashed_content_file = f"{topic_dir}/hashed_content.txt"
         self.context_file = f"{topic_dir}/context_data.yaml"

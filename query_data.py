@@ -77,12 +77,14 @@ def query_rag(query_text: str, chroma_dir: str, data_dir: str, debug: bool = Fal
         print("Retrieved Summarize:\n", results)
         print("Context:\n", context_text)
         print("Sources:\n", sources)
+        print("\n")
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     prompt = prompt_template.format(context=context_text, question=query_text)
     # print(prompt)
 
     model = Ollama(model="mistral")
     response_text = model.invoke(prompt)
+
 
     print(f"{WHITE}{response_text}{RESET}")
 
