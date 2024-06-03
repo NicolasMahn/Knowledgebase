@@ -34,7 +34,6 @@ class Chat_client:
         # self.data_dir = f"{self.topic_dir}/documents"
 
     def chat_function(self, message: str, history: list):
-        print(message)
         response, metadata_list = query_data.query_rag(message, self.chroma_dir, debug=True)
 
         answer = f"Rsponse:\n{response}\n\n"
@@ -47,7 +46,7 @@ class Chat_client:
     def launch_chat_client(self):
         gr.ChatInterface(
             fn=self.chat_function,
-            chatbot=gr.Chatbot(placeholder="Ask me any question about the Panda robot!"),
+            chatbot=gr.Chatbot(height=900, placeholder="Ask me any question about the Panda robot!"),
             title="Production Knowledgebase",
             description="Ask me any question about the Panda robot!",
             theme="soft",
