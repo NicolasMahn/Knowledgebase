@@ -29,12 +29,11 @@ def load_config(config_file):
 
 
 def main():
-    data_topics = config['data_topics']
-    default_topic = config['default_topic']
-
     # Create CLI.
     parser = argparse.ArgumentParser()
     config = load_config("config.yaml")
+    data_topics = config['data_topics']
+    default_topic = config['default_topic']
     parser.add_argument("query_text", type=str, help="The query text.")
     parser.add_argument("--debug", action="store_true", help="Additional print statements")
     parser.add_argument("--topic", choices=data_topics.keys(), help="Select the data topic.")
@@ -66,17 +65,18 @@ def query_rag(query_text: str, chroma_dir: str, data_dir: str, debug: bool = Fal
         metadata_list.append(doc.metadata)
         type = doc.metadata.get("type", None)
         url = doc.metadata.get("url", None)
-        doc_name = doc.metadata.get("doc_name", None)
+        # doc_name = doc.metadata.get("doc_name", None)
         page_content = doc.page_content
-        if type == "image":
-            context_texts.append(f"[source: {url}]\n{page_content}")
+        # if type == "image":
+        context_texts.append(f"[source: {type}, {url}]\n{page_content}")
+        """
         else:
             try:
                 raw_content = load_raw_document_content(doc_name, data_dir)
             except Exception as e:
                 raw_content = page_content
-            context_texts.append(f"[source: {url}]\n{raw_content}")
-
+            context_texts.append(f"[source: {type}, {url}]\n{raw_content}")
+        """
 
     context_text = "\n\n---\n\n".join(context_texts)
     # sources = [doc.metadata.get("id", None) for doc, _score in results]
@@ -92,8 +92,11 @@ def query_rag(query_text: str, chroma_dir: str, data_dir: str, debug: bool = Fal
     model = Ollama(model="mistral")
     response_text = model.invoke(prompt)
 
-
     print(f"{WHITE}{response_text}{RESET}")
+    print()
+    print("Scources: ")
+    for metadata in enumerate(metadata_list):
+        print(f"    [{metadata['type']}| URL: {metadata['url']}| local filename: {metadata['doc_name']}]{RESET}")
 
     return response_text
 
