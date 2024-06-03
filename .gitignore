@@ -5,3 +5,4 @@ backup
 /data/
 
 /.idea
+/gradio_cached_examples
