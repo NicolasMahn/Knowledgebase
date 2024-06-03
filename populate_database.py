@@ -89,7 +89,7 @@ class DatabaseManager:
                     doc = self.generate_txt_summary(txt_file, meta_data)
                     self.add_to_chroma(doc)
                 pbar.update(1)
-        '''
+
         with tqdm(total=len(csv_files), bar_format=bar_format_csv, unit="document", ncols=ncols) as pbar:
             for csv_file in csv_files:
                 meta_data = self.load_csv_metadata(csv_file)
@@ -97,7 +97,6 @@ class DatabaseManager:
                     doc = self.generate_csv_summary(csv_file, meta_data)
                     self.add_to_chroma(doc)
                 pbar.update(1)
-        '''
 
         with tqdm(total=len(img_files), bar_format=bar_format_img, unit="document", ncols=ncols) as pbar:
             for img_file in img_files:
