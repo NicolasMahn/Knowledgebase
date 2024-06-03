@@ -44,13 +44,13 @@ def main():
     topic_config = data_topics[selected_topic]
     topic_dir = topic_config['topic_dir']
     chroma_dir = f"{topic_dir}/chroma"
-    data_dir = f"{topic_dir}/documents"
+    # data_dir = f"{topic_dir}/documents"
 
     query_text = args.query_text
-    query_rag(query_text, chroma_dir, data_dir, args.debug)
+    query_rag(query_text, chroma_dir, args.debug)
 
 
-def query_rag(query_text: str, chroma_dir: str, data_dir: str, debug: bool = False):
+def query_rag(query_text: str, chroma_dir: str, debug: bool = False):
     # Prepare the DB.
     embedding_function = get_embedding_function()
     db = Chroma(persist_directory=chroma_dir, embedding_function=embedding_function)

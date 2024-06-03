@@ -31,15 +31,16 @@ class Chat_client:
     def __init__(self, topic_dir: str):
         self.topic_dir = topic_dir
         self.chroma_dir = f"{self.topic_dir}/chroma"
-        self.data_dir = f"{self.topic_dir}/documents"
+        # self.data_dir = f"{self.topic_dir}/documents"
 
     def chat_function(self, message: str, history: list):
-        response, metadata_list = query_data.query_rag(message, self.data_dir, self.chroma_dir, debug=True)
+        print(message)
+        response, metadata_list = query_data.query_rag(message, self.chroma_dir, debug=True)
 
         answer = f"Rsponse:\n{response}\n\n"
-        answer += f"Scources: "
+        answer += f"Scources:\n"
         for i, metadata in enumerate(metadata_list):
-            answer += f"   {i}. [{metadata['type']} | URL: {metadata['url']}]"
+            answer += f"   {i}. [{metadata['type']} | URL: {metadata['url']}]\n"
 
         return answer
 
