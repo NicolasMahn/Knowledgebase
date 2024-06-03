@@ -40,14 +40,14 @@ class Chat_client:
         answer = f"Rsponse:\n{response}\n\n"
         answer += f"Scources:\n"
         for i, metadata in enumerate(metadata_list):
-            answer += f"   {i}. [{metadata['type']} | URL: {metadata['url']}]\n"
+            answer += f"   {i}. [{metadata['type']} | URL: {metadata['url']} ]\n"
 
         return answer
 
     def launch_chat_client(self):
         gr.ChatInterface(
             fn=self.chat_function,
-            chatbot=gr.Chatbot(height=900, placeholder="Ask me any question about the Panda robot!"),
+            chatbot=gr.Chatbot(placeholder="Ask me any question about the Panda robot!"),
             title="Production Knowledgebase",
             description="Ask me any question about the Panda robot!",
             theme="soft",
