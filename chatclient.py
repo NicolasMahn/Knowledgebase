@@ -24,10 +24,10 @@ def main():
     topic_config = data_topics[default_topic]
     topic_dir = topic_config['topic_dir']
 
-    Chat_client(topic_dir).launch_chat_client()
+    ChatClient(topic_dir).launch_chat_client()
 
 
-class Chat_client:
+class ChatClient:
     def __init__(self, topic_dir: str):
         self.topic_dir = topic_dir
         self.chroma_dir = f"{self.topic_dir}/chroma"
@@ -50,12 +50,14 @@ class Chat_client:
             title="Production Knowledgebase",
             description="Ask me any question about the Panda robot!",
             theme="soft",
-            examples=["What is the Load Capacity of the Panda Robot?"],
+            examples=["What is the Load Capacity of the Panda Robot?", "How much Force can the Panda Robot exert?",
+                      "What can the Panda Robot be used for?"],
             cache_examples=True,
             retry_btn=None,
             undo_btn="Delete Previous",
             clear_btn="Clear"
         ).launch()
+
 
 if __name__ == "__main__":
     main()
